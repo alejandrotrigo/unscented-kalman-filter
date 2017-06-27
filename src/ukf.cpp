@@ -78,6 +78,50 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+  
+  if (!is_initialized_) {
+
+    
+    // first measurement
+    cout << "EKF: " << endl;
+    ekf_.x_ = VectorXd(4);
+
+    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+      /**
+      Convert radar from polar to cartesian coordinates and initialize state.
+      */
+      float x = measurement_pack.raw_measurements_[0] * cos(measurement_pack.raw_measurements_[1]);
+      float y = measurement_pack.raw_measurements_[0] * sin(measurement_pack.raw_measurements_[1]);
+      float vx = measurement_pack.raw_measurements_[2] * cos(measurement_pack.raw_measurements_[1]);
+      float vy = measurement_pack.raw_measurements_[2] * sin(measurement_pack.raw_measurements_[1]);
+      printf("RADAR___________");
+      ekf_.x_ << x, y, vx, 0, 0;
+    }
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+      /**
+      Initialize state. If Laser data then there is no velocity
+      */
+      ekf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0;
+    }
+   
+    if (fabs(ekf_.x_(0)) < 0.00001 and fabs(ekf_.x_(1)) < 0.00001){
+		ekf_.x_(0) = 0.00001;
+		ekf_.x_(1) = 0.00001;
+	}
+    
+    //initial covariance matrix 
+    ekf_.P_ = MatrixXd(5,5);
+    ekf_.P_ << 1, 0, 0, 0, 0,
+			   0, 1, 0, 0, 0,
+			   0, 0, 1, 0, 0,
+			   0, 0, 0, 1, 0,
+			   0, 0, 0, 0, 1;
+			   
+	previous_timestamp_ = measurement_pack.timestamp_;
+    // done initializing, no need to predict or update
+    is_initialized_ = true;
+    return;
+  
 }
 
 /**

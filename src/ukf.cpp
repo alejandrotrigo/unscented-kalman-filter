@@ -44,17 +44,22 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
   
+  
+  previous_timestamp_ = 0;
+
+  
   // Weights of sigma points
-  VectorXd weights_;
+  weights_ = VectorXd(15);
 
   // State dimension
-  int n_x_ = 5;
+  n_x_ = 5;
 
   // Augmented state dimension
-  int n_aug_ = 7;
+  n_aug_ = 7;
 
   // Sigma point spreading parameter
-  double lambda_ = 3 - n_aug_;
+  lambda_ = 3 - n_aug_;
+  
 
   /**
   TODO:
@@ -78,7 +83,7 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
     
     // first measurement
     cout << "UKF: " << endl;
-    ukf_.x_ = VectorXd(5);
+    x_ = VectorXd(5);
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
@@ -94,23 +99,23 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
       float vx = rho_d * cos(phi);
       float vy = rho_d * sin(phi);
       
-      ukf_.x_ << px, py, sqrt(vx*vx + vy*vy), 0, 0;
+      x_ << px, py, sqrt(vx*vx + vy*vy), 0, 0;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state. If Laser data then there is no velocity
       */
-      ukf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0, 0;
+      x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0, 0;
     }
    
-    if (fabs(ukf_.x_(0)) < 0.00001 and fabs(ukf_.x_(1)) < 0.00001){
-		ukf_.x_(0) = 0.00001;
-		ukf_.x_(1) = 0.00001;
+    if (fabs(x_(0)) < 0.00001 and fabs(x_(1)) < 0.00001){
+		x_(0) = 0.00001;
+		x_(1) = 0.00001;
 	}
     
     //initial covariance matrix 
-    ukf_.P_ = MatrixXd(5,5);
-    ukf_.P_ << 1, 0, 0, 0, 0,
+    P_ = MatrixXd(5,5);
+    P_ << 1, 0, 0, 0, 0,
 			   0, 1, 0, 0, 0,
 			   0, 0, 1, 0, 0,
 			   0, 0, 0, 1, 0,
@@ -120,6 +125,8 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
     // done initializing, no need to predict or update
     is_initialized_ = true;
     return;
+    
+  }
   
 }
 
@@ -165,4 +172,65 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+}
+
+void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out){
+	
+	VectorXd x_aug = VectorXd(7);
+    
+    MatrixXd P_aug = MatrixXd(7,7);
+    
+    MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+    
+    x_aug.head(5) = x_;
+    x_aug(5) = 0;
+    x_aug(6) = 0;
+    
+    P_aug.fill(0.0);
+    P_aug.topLeftCorner(5,5) = P_;
+    
+    MatrixXd Q = MatrixXd(2,2);
+	Q << std_a_*std_a_,0,0,std_yawdd_*std_yawdd_;
+	
+	P_aug.bottomRightCorner(2,2) = Q;
+	
+	MatrixXd A = P_aug.llt().matrixL();
+	
+	Xsig_aug.col(0) = x_aug;
+	
+	for(int i=0; i<n_aug_; i++){
+      Xsig_aug.col(i+1) = x_aug + (A.col(i) * sqrt(lambda_ + n_aug_));
+      Xsig_aug.col(i+n_aug_+1) = x_aug - (A.col(i) * sqrt(lambda_ + n_aug_));
+	}
+	
+	std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+	*Xsig_out = Xsig_aug;
+	
+}
+
+void PredictSigmaPoints(){
+	
+	/**
+	TODO
+	* 
+	**/
+	
+}
+
+void PredictMeanCovariance(){
+	
+	/**
+	TODO
+	*
+	**/
+	
+}
+
+void PredictMeasurement(){
+	
+	/**
+	TODO
+	*
+	**/
+	
 }

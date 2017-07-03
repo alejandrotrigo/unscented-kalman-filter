@@ -71,47 +71,46 @@ UKF::~UKF() {}
  * @param {MeasurementPackage} meas_package The latest measurement data of
  * either radar or laser.
  */
-void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
+void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
   
   if (!is_initialized_) {
 
     
     // first measurement
-    cout << "EKF: " << endl;
-    ekf_.x_ = VectorXd(4);
+    cout << "UKF: " << endl;
+    ukf_.x_ = VectorXd(5);
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
-      float x = measurement_pack.raw_measurements_[0] * cos(measurement_pack.raw_measurements_[1]);
-      float y = measurement_pack.raw_measurements_[0] * sin(measurement_pack.raw_measurements_[1]);
-      float vx = measurement_pack.raw_measurements_[2] * cos(measurement_pack.raw_measurements_[1]);
-      float vy = measurement_pack.raw_measurements_[2] * sin(measurement_pack.raw_measurements_[1]);
-      printf("RADAR___________");
-      ekf_.x_ << x, y, vx, 0, 0;
+            
+      float rho = measurement_pack.raw_measurements_[0];
+      float phi = measurement_pack.raw_measurements_[1];
+      float rho_d = measurement_pack.raw_measurements_[2];
+
+      float px = rho * cos(phi);
+      float py = rho * sin(phi);
+      float vx = rho_d * cos(phi);
+      float vy = rho_d * sin(phi);
+      
+      ukf_.x_ << px, py, sqrt(vx*vx + vy*vy), 0, 0;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state. If Laser data then there is no velocity
       */
-      ekf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0;
+      ukf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0, 0;
     }
    
-    if (fabs(ekf_.x_(0)) < 0.00001 and fabs(ekf_.x_(1)) < 0.00001){
-		ekf_.x_(0) = 0.00001;
-		ekf_.x_(1) = 0.00001;
+    if (fabs(ukf_.x_(0)) < 0.00001 and fabs(ukf_.x_(1)) < 0.00001){
+		ukf_.x_(0) = 0.00001;
+		ukf_.x_(1) = 0.00001;
 	}
     
     //initial covariance matrix 
-    ekf_.P_ = MatrixXd(5,5);
-    ekf_.P_ << 1, 0, 0, 0, 0,
+    ukf_.P_ = MatrixXd(5,5);
+    ukf_.P_ << 1, 0, 0, 0, 0,
 			   0, 1, 0, 0, 0,
 			   0, 0, 1, 0, 0,
 			   0, 0, 0, 1, 0,

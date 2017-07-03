@@ -105,6 +105,10 @@ public:
   void UpdateRadar(MeasurementPackage meas_package);
   
   void GenerateSigmaPoints(MatrixXd* Xsig_out);
+  
+  void PredictSigmaPoints(MatrixXd &Xsig_out, double delta_t, MatrixXd &Xsig_pred_);
+  
+  void PredictMeanCovariance(MatrixXd &Xsig_aug, VectorXd *x_out, MatrixXd *P_out);
 };
 
 #endif /* UKF_H */

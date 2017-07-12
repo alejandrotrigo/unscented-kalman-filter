@@ -205,7 +205,7 @@ void UKF::Prediction(double delta_t) {
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred_, MatrixXd &Tc, MatrixXd &S) {
+void UKF::UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred, MatrixXd &Tc, MatrixXd &S) {
   /**
   TODO:
 
@@ -216,7 +216,6 @@ void UKF::UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred_, Matrix
   */
   
   VectorXd z = VectorXd(2);
-  z.fill(0.0);
   z << meas_package.raw_measurements_(0), meas_package.raw_measurements_(1);
   
   // Kalman Gain
@@ -226,23 +225,23 @@ void UKF::UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred_, Matrix
   K = Tc * S.inverse();
   
   // Residual
-  VectorXd zRes = VectorXd(2);
-  zRes.fill(0.0);
-  zRes = z - z_pred_;
+  VectorXd y = VectorXd(2);
+  y.fill(0.0);
+  y = z - z_pred;
   
   // Update state mean and covariance matrix
   x_ = x_ + K * zRes;
   P_ = P_- K * S * K.transpose();
   
   //NIS
-  NIS_laser_ = zRes.transpose() * S.inverse() * zRes; 
+  NIS_laser_ = y.transpose() * S.inverse() * y; 
 }
 
 /**
  * Updates the state and the state covariance matrix using a radar measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateRadar(MeasurementPackage meas_package) {
+void UKF::UpdateRadar(MeasurementPackage meas_package, VectorXd &z_pred, MatrixXd &Tc, MatrixXd &S) {
   /**
   TODO:
 
@@ -251,6 +250,33 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+  
+  VectorXd z = VectorXd(3);
+  z << meas_package.raw_measurements_(0), meas_package.raw_measurements_(1), meas_package.raw_measurements_(2);
+  
+  //Kalman Gain
+  MatrixXd K = MatrixXd(n_x_, 3);
+  K.fill(0.0);
+  K = Tc * S.inverse();
+  
+  //Residual 
+  VectorXd y = VectorXd(3);
+  y.fill(0.0);s
+  y = z -z_pred;
+  
+  //Angle normalization
+  if(y[1] < -M_PI){
+	y[1] = M_PI + std::fmod(y[1] + M_PI, M_PI + M_PI);
+  }else if(y[1] > M_PI){
+	y[1] = std::fmod(y[1] + M_PI, M_PI + M_PI) - M_PI;
+  }
+  
+  //update state mean and covariance matrix
+  x = x_ + K * y;
+  P_ = P_ - K * S * K.transpose();
+  
+  //NIS
+  NIS_radar_ = y.transpose() * S.inverse() * y;
 }
 
 void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out){

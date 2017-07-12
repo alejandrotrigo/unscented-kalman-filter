@@ -66,6 +66,8 @@ UKF::UKF() {
   
   Xsig_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
   
+  NIS_laser_ = 0.0;
+  NIS_radar_ = 0.0;
 
   /**
   TODO:
@@ -134,6 +136,44 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
     
   }
   
+  float dt = (measurement_pack.timestamp_ - previous_timestamp_)/1000000.0;
+  previous_timestamp_ = measurement_pack.timestamp_;
+  
+  Prediction(dt);
+  
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR){
+	  
+	  VectorXd z_pred = VectorXd(3);
+	  MatrixXd S = MatrixXd(3,3);
+	  MatrixXd Tc = MatrixXd(5,3);
+	  
+	  z_pred.fill(0.0);
+	  S.fill(0.0);
+	  Tc.fill(0.0);
+	  
+	  PredictMeasurement();
+	  
+	  UpdateRadar();
+	  
+	  previous_timestamp_ = measurement_pack.timestamp_;
+	  
+  }else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+	  
+	  VectorXd z_pred = VectorXd(2);
+	  MatrixXd S = MatrixXd(2,2);
+	  MatrixXd Tc = MatrixXd(5,2);
+	  
+	  z_pred.fill(0.0);
+	  S.fill(0.0);
+	  Tc.fill(0.0);
+	  
+	  PredictMeasurement();
+	  
+	  UpdateLidar();
+	  
+	  previous_timestamp_ = measurement_pack.timestamp_;
+  }
+  
 }
 
 /**
@@ -165,7 +205,7 @@ void UKF::Prediction(double delta_t) {
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(MeasurementPackage meas_package) {
+void UKF::UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred_, MatrixXd &Tc, MatrixXd &S) {
   /**
   TODO:
 
@@ -174,6 +214,28 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  
+  VectorXd z = VectorXd(2);
+  z.fill(0.0);
+  z << meas_package.raw_measurements_(0), meas_package.raw_measurements_(1);
+  
+  // Kalman Gain
+  
+  MatrixXd K = MatrixXd(n_x_, 2);
+  K.fill(0.0);
+  K = Tc * S.inverse();
+  
+  // Residual
+  VectorXd zRes = VectorXd(2);
+  zRes.fill(0.0);
+  zRes = z - z_pred_;
+  
+  // Update state mean and covariance matrix
+  x_ = x_ + K * zRes;
+  P_ = P_- K * S * K.transpose();
+  
+  //NIS
+  NIS_laser_ = zRes.transpose() * S.inverse() * zRes; 
 }
 
 /**
@@ -219,8 +281,7 @@ void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out){
       Xsig_aug.col(i+1) = x_aug + (A.col(i) * sqrt(lambda_ + n_aug_));
       Xsig_aug.col(i+n_aug_+1) = x_aug - (A.col(i) * sqrt(lambda_ + n_aug_));
 	}
-	
-	std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+	 
 	*Xsig_out = Xsig_aug;
 	
 }

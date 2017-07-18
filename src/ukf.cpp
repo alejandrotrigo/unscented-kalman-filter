@@ -26,10 +26,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 6;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 6;
+  std_yawdd_ = 2;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -98,9 +98,9 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
       double rho = measurement_pack.raw_measurements_(0);
       double phi = measurement_pack.raw_measurements_(1);
       double rho_d = measurement_pack.raw_measurements_(2);
-
-      double px = rho * cos(phi);
-      double py = rho * sin(phi);
+      
+      double px = 0;  //rho * cos(phi);
+      double py = 0; //rho * sin(phi);
       double vx = rho_d * cos(phi);
       double vy = rho_d * sin(phi);
       

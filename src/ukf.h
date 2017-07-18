@@ -68,6 +68,7 @@ public:
   double lambda_;
 
   long previous_timestamp_;
+
   
   double NIS_radar_;
   double NIS_laser_;
@@ -99,19 +100,24 @@ public:
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(MeasurementPackage meas_package);
+  void UpdateLidar(MeasurementPackage meas_package, VectorXd &z_pred, MatrixXd &Tc, MatrixXd &S);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateRadar(MeasurementPackage meas_package);
+  void UpdateRadar(MeasurementPackage meas_package, VectorXd &z_pred, MatrixXd &Tc, MatrixXd &S);
   
-  void GenerateSigmaPoints(MatrixXd* Xsig_out);
+  void GenerateSigmaPoints(MatrixXd &Xsig_out);
   
   void PredictSigmaPoints(MatrixXd &Xsig_out, double delta_t, MatrixXd &Xsig_pred_);
   
-  void PredictMeanCovariance(MatrixXd &Xsig_aug, VectorXd *x_out, MatrixXd *P_out);
+  void PredictMeanCovariance(MatrixXd &Xsig_aug, VectorXd &x_out, MatrixXd &P_out);
+  
+  void PredictRadarMeasurements(VectorXd &z_out, MatrixXd &S_out, MatrixXd &Tc_out);
+  
+  void PredictLidarMeasurements(VectorXd &z_out, MatrixXd &S_out, MatrixXd &Tc_out);
+
 };
 
 #endif /* UKF_H */
